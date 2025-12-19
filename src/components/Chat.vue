@@ -1,7 +1,7 @@
 <template>
   <div 
-    class="chat-wrapper w-full overflow-hidden flex flex-col fixed inset-0"
-    :style="{ height: viewportHeight + 'px', left: 0, width: '100%' }"
+    class="chat-wrapper w-full overflow-hidden flex flex-col fixed inset-0 mx-auto max-w-[500px] shadow-2xl"
+    :style="{ height: viewportHeight + 'px' }"
   >
     <BackgroundDecor />
 
@@ -751,6 +751,7 @@ onMounted(() => {
   left: 0;
   right: 0;
   bottom: 0;
+  margin: 0 auto;
   touch-action: none;
   background: linear-gradient(-45deg, #fce4ec, #f8bbd0, #e1f5fe, #fce4ec);
   background-size: 400% 400%;
