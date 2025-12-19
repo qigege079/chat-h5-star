@@ -3,31 +3,41 @@
     <div class="main-container flex flex-col h-full w-full relative">
       <!-- Header -->
       <div
-        class="header-3d h-20 bg-[#ff8fb1] flex items-center px-4 relative z-10 shadow-lg"
+        class="header-3d h-24 bg-[#ff8fb1] flex items-center px-6 relative z-10 shadow-[0_8px_30px_rgb(255,143,177,0.4)] border-b-4 border-[#ff6b95]"
       >
-        <div class="flex-1 flex gap-4">
-          <div class="flex items-center gap-2">
-            <span
-              class="text-white font-black text-2xl tracking-wider drop-shadow-md"
-              >逗逗小星</span
-            >
-            <div
-              class="w-5 h-5 bg-white rounded-full flex items-center justify-center shadow-inner"
-            >
-              <span class="text-[#ff8fb1] text-[10px]">❤️</span>
+        <div class="flex-1 flex gap-4 items-center">
+          <div class="flex flex-col">
+            <div class="flex items-center gap-2">
+              <span
+                class="text-white font-black text-3xl tracking-wider drop-shadow-[0_2px_2px_rgba(0,0,0,0.3)]"
+                >逗逗小星</span
+              >
+              <div
+                class="w-6 h-6 bg-white rounded-full flex items-center justify-center shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)] animate-bounce"
+              >
+                <span class="text-[#ff8fb1] text-xs">❤️</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-1 mt-1">
+              <div
+                class="w-2 h-2 bg-green-400 rounded-full animate-pulse"
+              ></div>
+              <span class="text-white/80 text-xs font-bold"
+                >小星姐姐在线中</span
+              >
             </div>
           </div>
 
           <button
-            class="w-10 h-10 rounded-2xl bg-white/30 backdrop-blur-sm border-2 border-white flex items-center justify-center shadow-[0_4px_0_rgba(0,0,0,0.1)] active:shadow-none active:translate-y-1 transition-all"
+            class="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md border-2 border-white/50 flex items-center justify-center shadow-[0_6px_0_rgba(0,0,0,0.1)] active:shadow-none active:translate-y-1 transition-all hover:bg-white/30"
             @click="showSettings = true"
           >
-            <span class="text-xl">⚙️</span>
+            <span class="text-2xl drop-shadow-md">⚙️</span>
           </button>
         </div>
 
         <div
-          class="avatar-3d w-16 h-16 bg-white rounded-full border-4 border-[#ff8fb1] overflow-hidden shadow-lg transform translate-y-5"
+          class="avatar-3d w-20 h-20 bg-white rounded-full border-4 border-[#ff8fb1] overflow-hidden shadow-[0_10px_25px_rgba(255,143,177,0.4)] transform translate-y-6 hover:rotate-12 transition-transform duration-500"
         >
           <img
             src="../assets/image/head.jpg"
@@ -52,7 +62,7 @@
         >
           <div
             :class="[
-              'relative max-w-[85%] px-4 py-3 rounded-[20px] font-bold text-base transition-all active:scale-95 cursor-pointer bubble-3d',
+              'relative max-w-[85%] px-5 py-3 rounded-[24px] font-bold text-lg transition-all active:scale-95 cursor-pointer bubble-3d message-bounce hover:-translate-y-1',
               msg.role === 'user'
                 ? 'bg-[#ffeaa7] text-[#5d4037] rounded-tr-none user-bubble'
                 : index % 2 === 0
@@ -88,35 +98,34 @@
       <div class="p-4 bg-white/60 backdrop-blur-md border-t border-white/20">
         <div class="flex items-center gap-2">
           <div
-            class="voice-input-container flex-1 bg-[#74b9ff] rounded-full p-1 flex items-center gap-2 shadow-lg"
+            class="flex-1 flex items-center bg-[#f8f9fa] rounded-2xl px-4 py-3 shadow-[inset_0_4px_8px_rgba(0,0,0,0.05)] border-2 border-white focus-within:border-[#ff8fb1] transition-all group"
           >
-            <div class="flex-1 bg-white rounded-full px-4 py-2">
-              <input
-                v-model="userInput"
-                type="text"
-                placeholder="想对小星说什么？"
-                class="w-full outline-none text-[#4b5563] font-bold text-base bg-transparent"
-                @keyup.enter="sendMessage"
-              />
-            </div>
+            <input
+              v-model="userInput"
+              type="text"
+              placeholder="和小星姐姐聊天吧..."
+              class="flex-1 bg-transparent border-none focus:outline-none text-gray-700 placeholder-gray-400 font-bold"
+              @keyup.enter="sendMessage"
+            />
             <button
-              @click="toggleListening"
-              :class="[
-                'w-10 h-10 rounded-full flex items-center justify-center transition-all active:scale-90',
-                isListening ? 'bg-red-500 animate-pulse' : 'bg-[#ff4d94]',
-              ]"
+              class="ml-2 w-10 h-10 flex items-center justify-center rounded-xl bg-[#ff8fb1] text-white shadow-[0_4px_0_#eb4d4b] active:shadow-none active:translate-y-1 transition-all disabled:opacity-50 group-hover:scale-110"
+              :disabled="isLoading || !userInput.trim()"
+              @click="sendMessage"
             >
-              <Mic v-if="!isListening" class="w-5 h-5 text-white" />
-              <MicOff v-else class="w-5 h-5 text-white" />
+              <span v-if="!isLoading" class="text-xl">🚀</span>
+              <span v-else class="loading loading-spinner loading-xs"></span>
             </button>
           </div>
-          <!-- 发送按钮 -->
           <button
-            @click="sendMessage"
-            :disabled="!userInput.trim() || isLoading"
-            class="w-12 h-12 rounded-full bg-[#ff8fb1] flex items-center justify-center shadow-lg transition-all active:scale-90 disabled:bg-gray-300 disabled:shadow-none bubble-3d"
+            class="w-14 h-14 rounded-full flex items-center justify-center transition-all active:scale-90 shadow-[0_6px_0_#0652dd] active:shadow-none active:translate-y-1"
+            :class="[
+              isListening
+                ? 'bg-red-500 shadow-[0_6px_0_#c0392b] animate-pulse'
+                : 'bg-[#74b9ff]',
+            ]"
+            @click="toggleListening"
           >
-            <Send class="w-6 h-6 text-white" />
+            <span class="text-2xl">{{ isListening ? "⏹️" : "🎤" }}</span>
           </button>
         </div>
       </div>
@@ -577,20 +586,41 @@ onMounted(() => {
   box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
 }
 
+/* 3D 气泡增强效果 */
 .bubble-3d {
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1), inset 0 -4px 0 rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 0 rgba(0, 0, 0, 0.1), 0 15px 25px rgba(0, 0, 0, 0.05);
+  transform: perspective(1000px) rotateX(2deg);
 }
 
 .user-bubble {
-  border-bottom: 3px solid #e0c570;
+  border: 3px solid #f9ca24;
+  box-shadow: 0 8px 0 #f0932b;
 }
 
 .ai-bubble-pink {
-  border-bottom: 3px solid #e67e9c;
+  border: 3px solid #ff7597;
+  box-shadow: 0 8px 0 #eb4d4b;
 }
 
 .ai-bubble-blue {
-  border-bottom: 3px solid #5da3e6;
+  border: 3px solid #0984e3;
+  box-shadow: 0 8px 0 #0652dd;
+}
+
+/* 消息进入动画 */
+.message-bounce {
+  animation: messageBounce 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes messageBounce {
+  from {
+    opacity: 0;
+    transform: scale(0.8) translateY(20px) rotate(-5deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0) rotate(0);
+  }
 }
 
 .scale-in-center {
