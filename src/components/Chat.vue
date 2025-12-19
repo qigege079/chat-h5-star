@@ -154,7 +154,7 @@ const speakWithAzure = async (text) => {
 }
 
 // API 配置
-const apiKey = ref('sk-6624657ac8d9443c9046a397593febd2')
+const apiKey = ref(import.meta.env.VITE_DEEPSEEK_KEY || 'sk-6624657ac8d9443c9046a397593febd2')
 const apiUrl = 'https://api.deepseek.com/v1/chat/completions'
 
 const scrollToBottom = async () => {
