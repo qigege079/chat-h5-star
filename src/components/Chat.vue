@@ -1,7 +1,7 @@
 <template>
   <div 
     class="chat-wrapper w-full overflow-hidden flex flex-col fixed inset-0"
-    :style="{ height: viewportHeight + 'px' }"
+    :style="{ height: viewportHeight + 'px', left: 0, width: '100%' }"
   >
     <BackgroundDecor />
 
@@ -15,7 +15,7 @@
           left: p.x + 'px',
           top: p.y + 'px',
           opacity: p.opacity,
-          transform: `scale(${p.scale})`
+          transform: `scale(${p.scale})`,
         }"
       >
         {{ p.emoji }}
@@ -45,7 +45,8 @@
                 class="w-2 h-2 bg-green-400 rounded-full animate-pulse"
               ></div>
               <span class="text-white/80 text-xs font-bold"
-                >小星姐姐 {{ mood === 'thinking' ? '正在思考中...' : '在线中' }}</span
+                >小星姐姐
+                {{ mood === "thinking" ? "正在思考中..." : "在线中" }}</span
               >
             </div>
           </div>
@@ -60,7 +61,10 @@
 
         <div
           class="avatar-3d w-20 h-20 bg-white rounded-full border-4 border-[#ff8fb1] overflow-hidden shadow-[0_10px_25px_rgba(255,143,177,0.4)] transform translate-y-6 hover:rotate-12 transition-transform duration-500 cursor-pointer"
-          @click="triggerBurst(window.innerWidth - 60, 60); mood = 'excited'"
+          @click="
+            triggerBurst(window.innerWidth - 60, 60);
+            mood = 'excited';
+          "
         >
           <img
             src="../assets/image/head.jpg"
@@ -90,7 +94,10 @@
                 ? 'bg-[#ffeaa7] text-[#5d4037] rounded-tr-none user-bubble'
                 : 'bg-[#ff8fb1] text-white rounded-tl-none ai-bubble-pink',
             ]"
-            @click="speak(msg.content); triggerBurst($event.clientX, $event.clientY)"
+            @click="
+              speak(msg.content);
+              triggerBurst($event.clientX, $event.clientY);
+            "
           >
             {{ msg.content }}
             <!-- 气泡小尾巴 -->
@@ -135,7 +142,9 @@
       </div>
 
       <!-- Input Area -->
-      <div class="p-4 bg-white/60 backdrop-blur-md border-t border-white/20  mb-[env(safe-area-inset-bottom)]">
+      <div
+        class="p-4 bg-white/60 backdrop-blur-md border-t border-white/20 mb-[env(safe-area-inset-bottom)]"
+      >
         <div class="flex items-center gap-2">
           <div
             class="flex-1 flex items-center bg-[#f8f9fa] rounded-2xl px-4 py-3 shadow-[inset_0_4px_8px_rgba(0,0,0,0.05)] border-2 border-white focus-within:border-[#ff8fb1] transition-all group"
@@ -383,7 +392,9 @@ const viewportHeight = ref(window.innerHeight);
 
 // 处理视口高度，解决移动端工具栏遮挡问题
 const updateHeight = () => {
-  viewportHeight.value = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+  viewportHeight.value = window.visualViewport
+    ? window.visualViewport.height
+    : window.innerHeight;
 };
 
 // 语音识别相关
@@ -405,7 +416,7 @@ const availableVoices = ref([]);
 const loadVoices = () => {
   // 获取所有语音
   let voices = synth.getVoices();
-  
+
   // 如果获取不到，尝试延迟一下（某些浏览器需要时间初始化）
   if (voices.length === 0) {
     setTimeout(() => {
@@ -414,7 +425,7 @@ const loadVoices = () => {
     }, 100);
     return;
   }
-  
+
   updateVoiceList(voices);
 };
 
@@ -529,9 +540,7 @@ const toggleListening = () => {
 };
 
 // API 配置
-const apiKey = ref(
-  import.meta.env.VITE_DEEPSEEK_KEY || "sk-6624657ac8d9443c9046a397593febd2"
-);
+const apiKey = ref("sk-6624657ac8d9443c9046a397593febd2");
 const apiUrl = "https://api.deepseek.com/v1/chat/completions";
 
 const scrollToBottom = async () => {
@@ -542,7 +551,8 @@ const scrollToBottom = async () => {
 };
 
 const sendMessage = async (customText = null) => {
-  const textToSend = typeof customText === "string" ? customText : userInput.value;
+  const textToSend =
+    typeof customText === "string" ? customText : userInput.value;
   if (!textToSend.trim() || isLoading.value) return;
 
   const userMessage = textToSend;
@@ -597,9 +607,16 @@ const sendMessage = async (customText = null) => {
     const assistantMessage = response.data.choices[0].message.content;
 
     // 根据回复内容更新心情
-    if (assistantMessage.includes("哈哈") || assistantMessage.includes("高兴") || assistantMessage.includes("🌟")) {
+    if (
+      assistantMessage.includes("哈哈") ||
+      assistantMessage.includes("高兴") ||
+      assistantMessage.includes("🌟")
+    ) {
       mood.value = "excited";
-    } else if (assistantMessage.includes("惊讶") || assistantMessage.includes("真的吗")) {
+    } else if (
+      assistantMessage.includes("惊讶") ||
+      assistantMessage.includes("真的吗")
+    ) {
       mood.value = "surprised";
     } else {
       mood.value = "happy";
@@ -668,10 +685,10 @@ onMounted(() => {
   initSpeech();
   loadVoices();
 
-  window.addEventListener('resize', updateHeight);
+  window.addEventListener("resize", updateHeight);
   if (window.visualViewport) {
-    window.visualViewport.addEventListener('resize', updateHeight);
-    window.visualViewport.addEventListener('scroll', updateHeight);
+    window.visualViewport.addEventListener("resize", updateHeight);
+    window.visualViewport.addEventListener("scroll", updateHeight);
   }
   updateHeight();
 
@@ -728,11 +745,13 @@ onMounted(() => {
 <style scoped>
 .chat-wrapper {
   font-family: "Hiragino Sans", "PingFang SC", "Microsoft YaHei", sans-serif;
-  width: 100vw;
+  width: 100%;
   position: fixed;
   top: 0;
   left: 0;
-  touch-action: none; /* 防止页面整体被拉动 */
+  right: 0;
+  bottom: 0;
+  touch-action: none;
   background: linear-gradient(-45deg, #fce4ec, #f8bbd0, #e1f5fe, #fce4ec);
   background-size: 400% 400%;
   animation: gradientBG 15s ease infinite;
