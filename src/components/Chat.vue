@@ -1,5 +1,8 @@
 <template>
-  <div class="chat-wrapper w-full h-screen overflow-hidden flex flex-col">
+  <div 
+    class="chat-wrapper w-full overflow-hidden flex flex-col fixed inset-0"
+    :style="{ height: viewportHeight + 'px' }"
+  >
     <BackgroundDecor />
 
     <!-- 粒子特效层 -->
@@ -70,7 +73,7 @@
       <!-- Chat Container -->
       <div
         ref="chatContainer"
-        class="flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth"
+        class="flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth overscroll-contain"
       >
         <div
           v-for="msg in messages"
@@ -95,8 +98,8 @@
               class="absolute top-0 w-3 h-3"
               :class="[
                 msg.role === 'user'
-                  ? 'right-[-6px] bg-[#ffeaa7] [clip-path:polygon(0_0,0_100%,100%_0)]'
-                  : 'left-[-6px] bg-inherit [clip-path:polygon(100%_0,100%_100%,0_0)]',
+                  ? 'right-[-6px] bg-[#ffeaa7] tail-user'
+                  : 'left-[-6px] bg-inherit tail-ai',
               ]"
             ></div>
           </div>
@@ -132,7 +135,7 @@
       </div>
 
       <!-- Input Area -->
-      <div class="p-4 bg-white/60 backdrop-blur-md border-t border-white/20">
+      <div class="p-4 bg-white/60 backdrop-blur-md border-t border-white/20  mb-[env(safe-area-inset-bottom)]">
         <div class="flex items-center gap-2">
           <div
             class="flex-1 flex items-center bg-[#f8f9fa] rounded-2xl px-4 py-3 shadow-[inset_0_4px_8px_rgba(0,0,0,0.05)] border-2 border-white focus-within:border-[#ff8fb1] transition-all group"
@@ -376,6 +379,12 @@ watch(
 const userInput = ref("");
 const isLoading = ref(false);
 const chatContainer = ref(null);
+const viewportHeight = ref(window.innerHeight);
+
+// 处理视口高度，解决移动端工具栏遮挡问题
+const updateHeight = () => {
+  viewportHeight.value = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+};
 
 // 语音识别相关
 const isListening = ref(false);
@@ -657,7 +666,14 @@ const saveApiKey = () => {
 
 onMounted(() => {
   initSpeech();
-  loadVoices(); // 显式调用一次加载语音
+  loadVoices();
+
+  window.addEventListener('resize', updateHeight);
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', updateHeight);
+    window.visualViewport.addEventListener('scroll', updateHeight);
+  }
+  updateHeight();
 
   // 禁止缩放
   document.addEventListener(
@@ -712,12 +728,11 @@ onMounted(() => {
 <style scoped>
 .chat-wrapper {
   font-family: "Hiragino Sans", "PingFang SC", "Microsoft YaHei", sans-serif;
-  height: 100vh;
   width: 100vw;
   position: fixed;
   top: 0;
   left: 0;
-  touch-action: manipulation;
+  touch-action: none; /* 防止页面整体被拉动 */
   background: linear-gradient(-45deg, #fce4ec, #f8bbd0, #e1f5fe, #fce4ec);
   background-size: 400% 400%;
   animation: gradientBG 15s ease infinite;
@@ -746,6 +761,16 @@ onMounted(() => {
 
 .avatar-3d {
   box-shadow: 0 8px 20px rgba(0, 172, 238, 0.2);
+}
+
+.tail-user {
+  clip-path: polygon(0 0, 0 100%, 100% 0);
+  -webkit-clip-path: polygon(0 0, 0 100%, 100% 0);
+}
+
+.tail-ai {
+  clip-path: polygon(100% 0, 100% 100%, 0 0);
+  -webkit-clip-path: polygon(100% 0, 100% 100%, 0 0);
 }
 
 /* 拟态效果 */
