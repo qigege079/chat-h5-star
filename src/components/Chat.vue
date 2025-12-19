@@ -53,8 +53,8 @@
         class="flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth"
       >
         <div
-          v-for="(msg, index) in messages"
-          :key="index"
+          v-for="msg in messages"
+          :key="msg.id || msg.content"
           :class="[
             'flex w-full',
             msg.role === 'user' ? 'justify-end' : 'justify-start',
@@ -65,9 +65,7 @@
               'relative max-w-[85%] px-5 py-3 rounded-[24px] font-bold text-lg transition-all active:scale-95 cursor-pointer bubble-3d message-bounce hover:-translate-y-1',
               msg.role === 'user'
                 ? 'bg-[#ffeaa7] text-[#5d4037] rounded-tr-none user-bubble'
-                : index % 2 === 0
-                ? 'bg-[#ff8fb1] text-white rounded-tl-none ai-bubble-pink'
-                : 'bg-[#74b9ff] text-white rounded-tl-none ai-bubble-blue',
+                : 'bg-[#ff8fb1] text-white rounded-tl-none ai-bubble-pink',
             ]"
             @click="speak(msg.content)"
           >
@@ -241,7 +239,11 @@ import {
 
 const messages = ref([]);
 
+// 辅助函数：生成唯一 ID
+const generateId = () => Date.now() + Math.random().toString(36).substr(2, 9);
+
 const defaultMessage = {
+  id: generateId(),
   role: "assistant",
   content:
     "宝贝你好呀！🌟 我是你的好朋友小星大姐姐。很高兴能陪你聊天！今天你遇到了什么好玩的事情吗？或者想听小星给你讲个小故事？🌈",
@@ -250,11 +252,18 @@ const defaultMessage = {
 const systemPrompt =
   "你是一个温柔、博学且充满童心的 AI 大姐姐。你的名字叫‘小星’，主要陪伴一位3岁的女孩聊天。请使用生动有趣的语言，多用表情符号，严禁输出任何暴力、负面或不适合儿童的内容。如果她问到深奥的科学问题，请用简单的比喻来解释。";
 
-// 监听消息变化并保存到 localStorage
+// 监听消息变化并保存到 localStorage (增加防抖)
+let storageTimer = null;
 watch(
   messages,
   (newMessages) => {
-    localStorage.setItem("deepseek_chat_history", JSON.stringify(newMessages));
+    if (storageTimer) clearTimeout(storageTimer);
+    storageTimer = setTimeout(() => {
+      localStorage.setItem(
+        "deepseek_chat_history",
+        JSON.stringify(newMessages)
+      );
+    }, 500);
   },
   { deep: true }
 );
@@ -396,6 +405,7 @@ const sendMessage = async () => {
 
   const userMessage = userInput.value;
   messages.value.push({
+    id: generateId(),
     role: "user",
     content: userMessage,
   });
@@ -407,6 +417,7 @@ const sendMessage = async () => {
   try {
     if (!apiKey.value) {
       messages.value.push({
+        id: generateId(),
         role: "assistant",
         content:
           "错误：请先设置 DeepSeek API Key。点击右上角设置图标进行配置。",
@@ -439,45 +450,54 @@ const sendMessage = async () => {
 
     const assistantMessage = response.data.choices[0].message.content;
 
-    // 创建一个空的消息对象
+    // 1. 先播放语音，让用户感知到回应
+    speak(assistantMessage);
+
+    // 2. 创建一个空的消息对象并推入数组
     const newMessage = {
+      id: generateId(),
       role: "assistant",
       content: "",
     };
     messages.value.push(newMessage);
 
-    // 实现打字机效果
+    // 3. 获取刚刚推入的消息对象的引用（它是响应式的）
+    const targetMsg = messages.value[messages.value.length - 1];
+
+    // 4. 实现打字机效果
     let i = 0;
     const typeWriter = () => {
       if (i < assistantMessage.length) {
-        newMessage.content += assistantMessage.charAt(i);
+        targetMsg.content += assistantMessage.charAt(i);
         i++;
         scrollToBottom();
-        setTimeout(typeWriter, 30); // 控制打字速度
+        setTimeout(typeWriter, 30);
+      } else {
+        // 打字结束，关闭加载状态
+        isLoading.value = false;
       }
     };
 
     typeWriter();
-
-    // 自动播放 AI 的回复
-    speak(assistantMessage);
   } catch (error) {
     console.error("API Error:", error);
     messages.value.push({
+      id: generateId(),
       role: "assistant",
       content: `抱歉，发生了一些错误：${
         error.response?.data?.error?.message || error.message
       }`,
     });
-  } finally {
     isLoading.value = false;
+  } finally {
     await scrollToBottom();
   }
 };
 
 const clearChat = () => {
   if (confirm("确定要清除所有聊天记录吗？")) {
-    messages.value = [defaultMessage];
+    const resetMsg = { ...defaultMessage, id: generateId() };
+    messages.value = [resetMsg];
     localStorage.removeItem("deepseek_chat_history");
   }
 };
@@ -532,10 +552,10 @@ onMounted(() => {
       messages.value = JSON.parse(savedHistory);
     } catch (e) {
       console.error("Failed to parse chat history:", e);
-      messages.value = [defaultMessage];
+      messages.value = [{ ...defaultMessage, id: generateId() }];
     }
   } else {
-    messages.value = [defaultMessage];
+    messages.value = [{ ...defaultMessage, id: generateId() }];
   }
 
   scrollToBottom();
