@@ -1,5 +1,24 @@
 <template>
   <div class="chat-wrapper w-full h-screen overflow-hidden flex flex-col">
+    <BackgroundDecor />
+
+    <!-- 粒子特效层 -->
+    <div class="fixed inset-0 pointer-events-none z-[9999]">
+      <div
+        v-for="p in particles"
+        :key="p.id"
+        class="absolute text-2xl"
+        :style="{
+          left: p.x + 'px',
+          top: p.y + 'px',
+          opacity: p.opacity,
+          transform: `scale(${p.scale})`
+        }"
+      >
+        {{ p.emoji }}
+      </div>
+    </div>
+
     <div class="main-container flex flex-col h-full w-full relative">
       <!-- Header -->
       <div
@@ -13,9 +32,9 @@
                 >逗逗小星</span
               >
               <div
-                class="w-6 h-6 bg-white rounded-full flex items-center justify-center shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)] animate-bounce"
+                class="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)] animate-bounce text-2xl"
               >
-                <span class="text-[#ff8fb1] text-xs">❤️</span>
+                {{ moodEmoji }}
               </div>
             </div>
             <div class="flex items-center gap-1 mt-1">
@@ -23,7 +42,7 @@
                 class="w-2 h-2 bg-green-400 rounded-full animate-pulse"
               ></div>
               <span class="text-white/80 text-xs font-bold"
-                >小星姐姐在线中</span
+                >小星姐姐 {{ mood === 'thinking' ? '正在思考中...' : '在线中' }}</span
               >
             </div>
           </div>
@@ -37,7 +56,8 @@
         </div>
 
         <div
-          class="avatar-3d w-20 h-20 bg-white rounded-full border-4 border-[#ff8fb1] overflow-hidden shadow-[0_10px_25px_rgba(255,143,177,0.4)] transform translate-y-6 hover:rotate-12 transition-transform duration-500"
+          class="avatar-3d w-20 h-20 bg-white rounded-full border-4 border-[#ff8fb1] overflow-hidden shadow-[0_10px_25px_rgba(255,143,177,0.4)] transform translate-y-6 hover:rotate-12 transition-transform duration-500 cursor-pointer"
+          @click="triggerBurst(window.innerWidth - 60, 60); mood = 'excited'"
         >
           <img
             src="../assets/image/head.jpg"
@@ -67,7 +87,7 @@
                 ? 'bg-[#ffeaa7] text-[#5d4037] rounded-tr-none user-bubble'
                 : 'bg-[#ff8fb1] text-white rounded-tl-none ai-bubble-pink',
             ]"
-            @click="speak(msg.content)"
+            @click="speak(msg.content); triggerBurst($event.clientX, $event.clientY)"
           >
             {{ msg.content }}
             <!-- 气泡小尾巴 -->
@@ -90,6 +110,25 @@
             <span class="loading loading-dots loading-sm text-[#ff8fb1]"></span>
           </div>
         </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="px-4 py-2 flex gap-3 overflow-x-auto no-scrollbar">
+        <button
+          v-for="action in [
+            { icon: Sparkles, text: '讲个故事', color: 'bg-yellow-400' },
+            { icon: Music, text: '唱首歌', color: 'bg-purple-400' },
+            { icon: Gamepad2, text: '玩游戏', color: 'bg-green-400' },
+            { icon: BookOpen, text: '学成语', color: 'bg-blue-400' },
+          ]"
+          :key="action.text"
+          class="flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-2xl text-white font-bold shadow-[0_4px_0_rgba(0,0,0,0.1)] active:shadow-none active:translate-y-1 transition-all"
+          :class="action.color"
+          @click="sendMessage(action.text)"
+        >
+          <component :is="action.icon" class="w-4 h-4" />
+          {{ action.text }}
+        </button>
       </div>
 
       <!-- Input Area -->
@@ -163,6 +202,9 @@
                   v-model="voiceSettings.selectedVoiceName"
                   class="select select-bordered select-sm rounded-xl flex-1 font-bold text-gray-600"
                 >
+                  <option v-if="availableVoices.length === 0" disabled value="">
+                    正在加载语音包...
+                  </option>
                   <option
                     v-for="voice in availableVoices"
                     :key="voice.name"
@@ -223,8 +265,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick, watch } from "vue";
+import { ref, onMounted, nextTick, watch, computed } from "vue";
 import axios from "axios";
+import BackgroundDecor from "./BackgroundDecor.vue";
 import {
   Send,
   User,
@@ -235,9 +278,71 @@ import {
   MicOff,
   Volume2,
   ChevronRight,
+  Sparkles,
+  Gamepad2,
+  BookOpen,
+  Music,
 } from "lucide-vue-next";
 
 const messages = ref([]);
+
+// 心情系统
+const mood = ref("happy"); // happy, excited, thinking, surprised
+const moodEmoji = computed(() => {
+  const emojis = {
+    happy: "😊",
+    excited: "🤩",
+    thinking: "🤔",
+    surprised: "😮",
+    sleepy: "😴",
+  };
+  return emojis[mood.value] || "😊";
+});
+
+// 粒子效果
+const particles = ref([]);
+const triggerBurst = (x, y) => {
+  const emojis = ["✨", "⭐", "🌟", "💖", "🌈", "🎈"];
+  for (let i = 0; i < 12; i++) {
+    const id = generateId();
+    particles.value.push({
+      id,
+      x,
+      y,
+      emoji: emojis[Math.floor(Math.random() * emojis.length)],
+      vx: (Math.random() - 0.5) * 10,
+      vy: (Math.random() - 0.5) * 10 - 5,
+      opacity: 1,
+      scale: 1,
+    });
+
+    setTimeout(() => {
+      particles.value = particles.value.filter((p) => p.id !== id);
+    }, 1000);
+  }
+};
+
+const updateParticles = () => {
+  particles.value.forEach((p) => {
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += 0.2; // gravity
+    p.opacity -= 0.02;
+    p.scale -= 0.01;
+  });
+  if (particles.value.length > 0) {
+    requestAnimationFrame(updateParticles);
+  }
+};
+
+watch(
+  () => particles.value.length,
+  (newLen, oldLen) => {
+    if (newLen > 0 && oldLen === 0) {
+      updateParticles();
+    }
+  }
+);
 
 // 辅助函数：生成唯一 ID
 const generateId = () => Date.now() + Math.random().toString(36).substr(2, 9);
@@ -289,8 +394,23 @@ const isSpeaking = ref(false);
 const availableVoices = ref([]);
 
 const loadVoices = () => {
-  // 获取所有语音，并筛选出中文
-  const voices = synth.getVoices();
+  // 获取所有语音
+  let voices = synth.getVoices();
+  
+  // 如果获取不到，尝试延迟一下（某些浏览器需要时间初始化）
+  if (voices.length === 0) {
+    setTimeout(() => {
+      voices = synth.getVoices();
+      updateVoiceList(voices);
+    }, 100);
+    return;
+  }
+  
+  updateVoiceList(voices);
+};
+
+const updateVoiceList = (voices) => {
+  // 筛选出中文语音
   availableVoices.value = voices.filter(
     (v) => v.lang.includes("zh") || v.lang.includes("CN")
   );
@@ -310,9 +430,21 @@ const loadVoices = () => {
 };
 
 // 监听语音包加载
-if (synth.onvoiceschanged !== undefined) {
+if (typeof synth !== "undefined" && synth.onvoiceschanged !== undefined) {
   synth.onvoiceschanged = loadVoices;
 }
+
+// 额外的定时检查，确保在某些不触发 onvoiceschanged 的浏览器中也能加载
+const voiceRetryInterval = setInterval(() => {
+  if (availableVoices.value.length > 0) {
+    clearInterval(voiceRetryInterval);
+  } else {
+    loadVoices();
+  }
+}, 1000);
+
+// 5秒后停止检查，防止无限循环
+setTimeout(() => clearInterval(voiceRetryInterval), 5000);
 
 const speak = (text) => {
   if (isSpeaking.value) {
@@ -400,17 +532,22 @@ const scrollToBottom = async () => {
   }
 };
 
-const sendMessage = async () => {
-  if (!userInput.value.trim() || isLoading.value) return;
+const sendMessage = async (customText = null) => {
+  const textToSend = typeof customText === "string" ? customText : userInput.value;
+  if (!textToSend.trim() || isLoading.value) return;
 
-  const userMessage = userInput.value;
+  const userMessage = textToSend;
   messages.value.push({
     id: generateId(),
     role: "user",
     content: userMessage,
   });
-  userInput.value = "";
+  if (!customText) userInput.value = "";
   isLoading.value = true;
+  mood.value = "thinking";
+
+  // 触发发送粒子效果 (大致在输入框位置)
+  triggerBurst(window.innerWidth / 2, window.innerHeight - 100);
 
   await scrollToBottom();
 
@@ -449,6 +586,15 @@ const sendMessage = async () => {
     );
 
     const assistantMessage = response.data.choices[0].message.content;
+
+    // 根据回复内容更新心情
+    if (assistantMessage.includes("哈哈") || assistantMessage.includes("高兴") || assistantMessage.includes("🌟")) {
+      mood.value = "excited";
+    } else if (assistantMessage.includes("惊讶") || assistantMessage.includes("真的吗")) {
+      mood.value = "surprised";
+    } else {
+      mood.value = "happy";
+    }
 
     // 1. 先播放语音，让用户感知到回应
     speak(assistantMessage);
@@ -511,6 +657,7 @@ const saveApiKey = () => {
 
 onMounted(() => {
   initSpeech();
+  loadVoices(); // 显式调用一次加载语音
 
   // 禁止缩放
   document.addEventListener(
@@ -659,6 +806,14 @@ onMounted(() => {
 }
 
 /* 隐藏滚动条但保留滚动功能 */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 ::-webkit-scrollbar {
   display: none;
 }
