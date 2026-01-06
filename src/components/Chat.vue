@@ -6,15 +6,32 @@
     <BackgroundDecor />
     <Particles ref="particlesRef" />
 
+    <!-- 历史记录侧边栏 -->
+    <HistorySidebar 
+      :is-open="showSidebar"
+      :sessions="sessions"
+      :current-session-id="currentSessionId"
+      @close="showSidebar = false"
+      @create="handleCreateNewChat"
+      @switch="handleSwitchSession"
+      @delete="handleDeleteSession"
+    />
+
     <div class="main-container flex flex-col h-full w-full relative" style="transform-style: preserve-3d; perspective: 1500px;">
       <div
         class="header-3d h-24 bg-[#ff8fb1] flex items-center px-6 relative z-10 shadow-[0_8px_30px_rgb(255,143,177,0.4)] border-b-4 border-[#ff6b95]"
       >
+        <button 
+          @click="showSidebar = true"
+          class="mr-4 w-10 h-10 flex items-center justify-center text-white hover:bg-white/20 rounded-xl transition-all"
+        >
+          <Menu :size="28" />
+        </button>
         <div class="flex-1 flex gap-4 items-center">
           <div class="flex flex-col">
             <div class="flex items-center gap-2">
               <span
-                class="text-white font-black text-3xl tracking-wider drop-shadow-[0_2px_2px_rgba(0,0,0,0.3)]"
+                class="text-white font-black text-xl tracking-wider drop-shadow-[0_2px_2px_rgba(0,0,0,0.3)]"
                 >逗逗小星</span
               >
               <div
@@ -162,14 +179,16 @@
 
 <script setup>
 import { ref, computed, onMounted } from "vue";
-import { Sparkles, Gamepad2, BookOpen, Music } from "lucide-vue-next";
+import { Menu, Sparkles, Gamepad2, BookOpen, Music } from "lucide-vue-next";
 import BackgroundDecor from "./BackgroundDecor.vue";
 import Particles from "./Particles.vue";
 import SettingsModal from "./SettingsModal.vue";
+import HistorySidebar from "./HistorySidebar.vue";
 import { useMessages } from "../composables/useMessages";
 import { useSpeech } from "../composables/useSpeech";
 
 const mood = ref("happy");
+const showSidebar = ref(false);
 const moodEmoji = computed(() => {
   const emojis = {
     happy: "😊",
@@ -188,6 +207,8 @@ const particlesRef = ref(null);
 
 const {
   messages,
+  sessions,
+  currentSessionId,
   isLoading,
   userInput,
   chatContainer,
@@ -196,6 +217,9 @@ const {
   sendMessage,
   clearChat,
   saveApiKey,
+  createNewChat,
+  switchSession,
+  deleteSession,
 } = useMessages();
 
 const {
@@ -248,6 +272,22 @@ const handleSettingsSave = ({ selectedModel: newModel, apiKeys: newApiKeys, voic
   apiKeys.value = { ...newApiKeys };
   voiceSettings.value = { ...newVoiceSettings };
   saveApiKey();
+};
+
+const handleCreateNewChat = () => {
+  createNewChat();
+  showSidebar.value = false;
+};
+
+const handleSwitchSession = (id) => {
+  switchSession(id);
+  showSidebar.value = false;
+};
+
+const handleDeleteSession = (id) => {
+  if (confirm("确定要删除这段珍贵的回忆吗？")) {
+    deleteSession(id);
+  }
 };
 
 const handleTestVoice = (settings) => {
