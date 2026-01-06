@@ -56,23 +56,46 @@ export function useMessages() {
       "宝贝你好呀！🌟 我是你的好朋友小星大姐姐。很高兴能陪你聊天！今天你遇到了什么好玩的事情吗？或者想听小星给你讲个小故事？🌈",
   };
 
-  let storageTimer: NodeJS.Timeout | null = null;
+  const storageTimer: Ref<NodeJS.Timeout | null> = ref(null);
+  const BACKEND_URL = (import.meta as any).env?.VITE_API_URL || "http://localhost:3000";
 
   watch(
     messages,
     (newMessages) => {
-      if (storageTimer) clearTimeout(storageTimer);
-      storageTimer = setTimeout(() => {
+      // 依然保存到本地作为备份
+      if (storageTimer.value) clearTimeout(storageTimer.value);
+      storageTimer.value = setTimeout(async () => {
         localStorage.setItem(
           "deepseek_chat_history",
           JSON.stringify(newMessages)
         );
-      }, 500);
+
+        // 同步到后端
+        try {
+          await axios.post(`${BACKEND_URL}/api/messages`, {
+            messages: newMessages,
+          });
+        } catch (error) {
+          console.error("同步记录到后端失败:", error);
+        }
+      }, 1000);
     },
     { deep: true }
   );
 
-  const loadMessages = () => {
+  const loadMessages = async () => {
+    // 优先尝试从后端加载
+    try {
+      const response = await axios.get(`${BACKEND_URL}/api/messages`);
+      if (response.data && response.data.length > 0) {
+        messages.value = response.data;
+        return;
+      }
+    } catch (error) {
+      console.warn("从后端加载记录失败，尝试本地缓存:", error);
+    }
+
+    // 后端没数据或失败，尝试本地缓存
     const saved = localStorage.getItem("deepseek_chat_history");
     if (saved) {
       try {
@@ -200,9 +223,14 @@ export function useMessages() {
     }
   };
 
-  const clearChat = () => {
+  const clearChat = async () => {
     messages.value = [defaultMessage];
     localStorage.removeItem("deepseek_chat_history");
+    try {
+      await axios.delete(`${BACKEND_URL}/api/messages`);
+    } catch (error) {
+      console.error("清除后端记录失败:", error);
+    }
   };
 
   const saveApiKey = () => {
