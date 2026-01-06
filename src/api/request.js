@@ -3,7 +3,7 @@ import axios from 'axios';
 // 创建 axios 实例
 const request = axios.create({
   // 基础路径，优先读取环境变量中的 VITE_API_URL
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000',
+  baseURL: import.meta.env.VITE_API_URL || 'https://doudou1.zeabur.app',
   // 超时时间
   timeout: 30000,
   // 请求头

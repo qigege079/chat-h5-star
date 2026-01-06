@@ -231,6 +231,7 @@ const {
   speak,
   testVoice,
   toggleListening,
+  saveVoiceSettings,
 } = useSpeech();
 
 const quickActions = [
@@ -272,6 +273,7 @@ const handleSettingsSave = ({ selectedModel: newModel, apiKeys: newApiKeys, voic
   apiKeys.value = { ...newApiKeys };
   voiceSettings.value = { ...newVoiceSettings };
   saveApiKey();
+  saveVoiceSettings();
 };
 
 const handleCreateNewChat = () => {
