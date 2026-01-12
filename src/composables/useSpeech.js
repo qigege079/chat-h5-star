@@ -12,7 +12,28 @@ export function useSpeech() {
     pitch: 1.2,
     rate: 0.9,
     volume: 1.0,
+    ttsService: "system", // system, chatterbox
+    chatterboxUrl: "http://localhost:8000",
+    chatterboxVoice: "default"
   });
+
+  // 从本地加载设置
+  const loadVoiceSettings = () => {
+    const saved = localStorage.getItem("voice_settings");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        voiceSettings.value = { ...voiceSettings.value, ...parsed };
+      } catch (e) {
+        console.error("加载语音设置失败:", e);
+      }
+    }
+  };
+
+  // 保存设置到本地
+  const saveVoiceSettings = () => {
+    localStorage.setItem("voice_settings", JSON.stringify(voiceSettings.value));
+  };
 
   const synth = window.speechSynthesis;
 
@@ -192,6 +213,7 @@ export function useSpeech() {
   };
 
   onMounted(() => {
+    loadVoiceSettings();
     initSpeech();
     loadVoices();
   });
@@ -205,5 +227,6 @@ export function useSpeech() {
     speak,
     testVoice,
     toggleListening,
+    saveVoiceSettings,
   };
 }

@@ -38,26 +38,34 @@ export const deleteSession = (sessionId) => {
 /**
  * 发送聊天请求 (DeepSeek)
  */
+/**
+ * 发送聊天请求 (DeepSeek)
+ * 注意：由于 AI 聊天需要流式输出 (Streaming)，我们必须使用原生的 fetch
+ * 因为 axios (request.post) 对流式响应的支持在浏览器端不够友好
+ */
 export const chatWithDeepSeek = (url, data, apiKey) => {
-  return request.post(url, data, {
+  return fetch(url, {
+    method: 'POST',
     headers: {
       'Authorization': `Bearer ${apiKey}`,
       'Content-Type': 'application/json'
     },
-    baseURL: '' // 覆盖默认 baseURL
+    body: JSON.stringify(data)
   });
 };
 
 /**
  * 发送聊天请求 (Mimo)
+ * 同样需要使用 fetch 来支持流式输出
  */
 export const chatWithMimo = (url, data, apiKey) => {
-  return request.post(url, data, {
+  return fetch(url, {
+    method: 'POST',
     headers: {
       'api-key': apiKey,
       'Content-Type': 'application/json'
     },
-    baseURL: '' // 覆盖默认 baseURL
+    body: JSON.stringify(data)
   });
 };
 

@@ -11,7 +11,7 @@ export function useMessages() {
 
   const apiKeys = ref({
     "deepseek-chat": "sk-6624657ac8d9443c9046a397593febd2",
-    "mimo-v2-flash": "sk-cmhkc7ysrtd6qu7dl3wthyiez7wezmhrut798hciuxpzx25a"
+    "mimo-v2-flash": "sk-cmhkc7ysrtd6qu7dl3wthyiez7wezmhrut798hciuxpzx25a",
   });
 
   const selectedModel = ref("deepseek-chat");
@@ -19,12 +19,12 @@ export function useMessages() {
   const modelConfigs = {
     "deepseek-chat": {
       url: "https://api.deepseek.com/v1/chat/completions",
-      model: "deepseek-chat"
+      model: "deepseek-chat",
     },
     "mimo-v2-flash": {
       url: "https://api.xiaomimimo.com/v1/chat/completions",
-      model: "mimo-v2-flash"
-    }
+      model: "mimo-v2-flash",
+    },
   };
 
   const systemPrompt =
@@ -59,7 +59,7 @@ export function useMessages() {
     try {
       const response = await api.getSessions();
       sessions.value = response.sort((a, b) => b.updatedAt - a.updatedAt);
-      
+
       // 如果没有当前会话且列表有数据，默认加载第一个
       if (!currentSessionId.value && sessions.value.length > 0) {
         switchSession(sessions.value[0].id);
@@ -148,42 +148,74 @@ export function useMessages() {
             content: m.content,
           })),
         ],
-        stream: false,
+        stream: true, // 开启流式输出
       };
 
       let response;
       if (selectedModel.value === "mimo-v2-flash") {
-        // Mimo 的 URL 特殊处理（如果是代理的话，可能需要调整）
-        // 之前逻辑：currentUrl = "/api/v1/chat/completions";
-        response = await api.chatWithMimo("/api/v1/chat/completions", requestData, apiKey);
+        response = await api.chatWithMimo(
+          "/api/v1/chat/completions",
+          requestData,
+          apiKey
+        );
       } else {
-        response = await api.chatWithDeepSeek(currentModelConfig.url, requestData, apiKey);
+        response = await api.chatWithDeepSeek(
+          currentModelConfig.url,
+          requestData,
+          apiKey
+        );
       }
 
-      const assistantContent = response.choices[0].message.content;
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.error?.message || `请求失败: ${response.status}`
+        );
+      }
 
+      // 创建一个新的消息用于展示 AI 回复
       const newMessage = {
         id: generateId(),
         role: "assistant",
         content: "",
       };
       messages.value.push(newMessage);
-
       const targetMsg = messages.value[messages.value.length - 1];
 
-      let i = 0;
-      const typeWriter = () => {
-        if (i < assistantContent.length) {
-          targetMsg.content += assistantContent.charAt(i);
-          i++;
-          scrollToBottom();
-          setTimeout(typeWriter, 30);
-        } else {
-          isLoading.value = false;
-        }
-      };
+      // 读取流式数据
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let done = false;
 
-      typeWriter();
+      while (!done) {
+        let res = await reader.read();
+        const { value, done: readerDone } = res
+        done = readerDone;
+        if (value) {
+          const chunk = decoder.decode(value);
+          // 处理 SSE 格式的数据 (data: {...})
+          const lines = chunk.split("\n");
+          for (const line of lines) {
+            if (line.startsWith("data: ")) {
+              const dataStr = line.slice(6).trim();
+              if (dataStr === "[DONE]") {
+                done = true;
+                break;
+              }
+              try {
+                const data = JSON.parse(dataStr);
+                const content = data.choices[0]?.delta?.content || "";
+                if (content) {
+                  targetMsg.content += content;
+                  scrollToBottom();
+                }
+              } catch (e) {
+                // 忽略解析失败的碎片
+              }
+            }
+          }
+        }
+      }
     } catch (error) {
       console.error("API Error:", error);
       const errorMessage = {
